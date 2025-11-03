@@ -10,6 +10,7 @@ import {
     TextField,
     Card,
     IconButton,
+    CardContent,
     Typography,
     ListItem,
     List,
@@ -17,6 +18,7 @@ import {
     Stack,
     ListItemSecondaryAction,
     InputAdornment,
+    Box,
     Divider,
 } from "@mui/material";
 import { Add, Delete, Edit, Clear } from "@mui/icons-material";
@@ -26,10 +28,11 @@ import { generateID } from "@/utils/generator-id";
 
 interface UpdateCategoryProps {
     onClose: () => void;
+    onRefresh: () => void;
     open: boolean;
 }
 
-const UpdateCategory: React.FC<UpdateCategoryProps> = ({ onClose, open }) => {
+const UpdateCategory: React.FC<UpdateCategoryProps> = ({ onClose, open, onRefresh }) => {
     const { getCategoryBy, insertCategory, updateCategoryBy, deleteCategoryBy } = useCategory();
     const [categories, setCategories] = useState<Category[]>([]);
     const [category, setCategory] = useState<Category>({ category_id: "", category_name: "" });
@@ -43,7 +46,7 @@ const UpdateCategory: React.FC<UpdateCategoryProps> = ({ onClose, open }) => {
     const fetchCategory = async () => {
         try {
             const { docs: res } = await getCategoryBy();
-            setCategories(res); 
+            setCategories(res);
         } catch (error) {
             console.error("Error fetching category:", error);
         }

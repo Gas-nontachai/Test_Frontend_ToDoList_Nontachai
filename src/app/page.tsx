@@ -15,9 +15,7 @@ import {
   Menu,
   MenuItem,
   Collapse,
-  InputAdornment,
-  useMediaQuery,
-  Grid
+  InputAdornment
 } from "@mui/material";
 import {
   Category,
@@ -43,32 +41,32 @@ import CompletedTask from "@/app/components/Task/CompletedTask";
 
 const TodoListPage: React.FC = () => {
   const { getTaskBy, insertTask, updateTaskBy, deleteTaskBy } = useTask();
-  const { getCategoryBy, insertCategory } = useCategory();
-
+  const { getCategoryBy } = useCategory();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [show_completed, setShowCompleted] = useState(true);
   const [open_update, setOpenUpdate] = useState(false);
   const [open_manage_category, setOpenManageCategory] = useState(false);
-
-  const [selected_task_id, setSelectedTaskID] = useState("");
-  const [search_query, setSearchQuery] = useState("");
-
   const [tasks, setTasks] = useState<Task[]>([]);
   const [task, setTask] = useState<Task>({
     task_id: "",
     text: "",
-    category: "",
+    category: "General",
     completed: false,
     createdAt: new Date(),
     completedAt: undefined,
   });
+
+  const [selected_task_id, setSelectedTaskID] = useState("");
+
+  const [search_query, setSearchQuery] = useState<string>("");
   const [sort_order, setSortOrder] = useState<{ name: string; order: "ASC" | "DESC" }>({
     name: "createdAt",
     order: "ASC",
   });
+  const [filter_category, setFilterCategory] = useState<string>("All");
 
-  const [filter_category, setFilterCategory] = useState("All")
   const [task_category_option, setTaskCategoryOption] = useState<string[]>([]);
 
   const fetchTasks = useCallback(async () => {
@@ -101,8 +99,8 @@ const TodoListPage: React.FC = () => {
 
   useEffect(() => {
     try {
+      fetchTasks();
       fetchCategory()
-      fetchTasks()
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
@@ -113,23 +111,10 @@ const TodoListPage: React.FC = () => {
   const fetchCategory = async () => {
     try {
       const { docs: res } = await getCategoryBy();
-      let option = res.map((item) => item.category_name);
-
-      if (option.length === 0) {
-        const defaultCategory = 'General';
-        option = [defaultCategory];
-        await insertCategory({
-          category_name: defaultCategory,
-          category_id: generateID(),
-        });
-      }
-
-      setTaskCategoryOption(option);
-      setTask((prev) => ({ ...prev, category: option[0] }));
+      const option = res.map((item) => item.category_name);
+      setTaskCategoryOption(option)
     } catch (error) {
-      console.error("Failed to fetch or insert category:", error);
-      setTaskCategoryOption(['General']);
-      setTask((prev) => ({ ...prev, category: 'General' }));
+      console.error("Error fetching category:", error);
     }
   };
 
@@ -262,171 +247,144 @@ const TodoListPage: React.FC = () => {
 
   return (
     <Box className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
-      <Typography variant="h4" mb={3} align="center" sx={{ fontWeight: "bold", color: "text.primary" }}>
-        To-Do List
-      </Typography>
-      <Grid container spacing={2} alignItems="center" mb={3}>
-        <Grid size={{ xs: 12, sm: 8, md: 9 }} >
-          <TextField
-            fullWidth
-            label="New Task"
-            variant="outlined"
-            value={task.text}
-            onChange={(e) => setTask({ ...task, text: e.target.value })}
-            onKeyUp={(e) => e.key === "Enter" && addTask()}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end" sx={{ display: "flex", gap: 1 }}>
-                  <Select
-                    value={task.category || ""}
-                    onChange={(e) => setTask({ ...task, category: e.target.value })}
-                    displayEmpty
-                    variant="standard"
-                    sx={{ minWidth: 120 }}
-                    renderValue={(selected) =>
-                      selected === ""
-                        ? task_category_option.length === 0
-                          ? "กำลังโหลด..."
-                          : "เลือกหมวดหมู่"
-                        : selected
-                    }
-                    disabled={task_category_option.length === 0}
-                  >
-                    {task_category_option.length > 0 ? (
-                      task_category_option.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {option}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem disabled value="">
-                        ไม่มีข้อมูลหมวดหมู่
-                      </MenuItem>
-                    )}
-                  </Select>
-
-                  <IconButton
-                    onClick={addTask}
-                    sx={{
-                      backgroundColor: "green",
-                      color: "white",
-                      "&:hover": { backgroundColor: "darkgreen" },
-                    }}
-                    size="large"
-                  >
-                    <Add />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ borderRadius: "999px" }}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 4, md: 3 }}  >
-          <Button
-            variant="outlined"
-            onClick={() => setOpenManageCategory(!open_manage_category)}
-            startIcon={<Category />}
-            fullWidth
-            sx={{
-              paddingY: 1,
-              paddingX: 2,
-              borderRadius: 3,
-              borderColor: 'grey.400',
-              textTransform: 'none',
-              color: 'text.primary',
-              '&:hover': {
-                borderColor: 'primary.main',
-                backgroundColor: 'primary.50',
-              },
-            }}
-          >
-            Manage Category
-          </Button>
-        </Grid>
-      </Grid>
-
-      {/* Row 2: Search + Filter + Sort + Clear */}
-      <Grid container spacing={2} alignItems="center" mb={3}>
-        <Grid size={{ xs: 12, sm: 6, md: 5 }}  >
-          <TextField
-            fullWidth
-            size="small"
-            label="Search"
-            variant="outlined"
-            value={search_query}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && fetchTasks()}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={fetchTasks} sx={{ color: "#4F46E5" }}>
-                    <Search />
-                  </IconButton>
-                </InputAdornment>
-              ),
-              sx: { borderRadius: "999px" },
-            }}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 6, sm: 3, md: 2 }}   >
-          <Select
-            value={filter_category}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            displayEmpty
-            fullWidth
-            sx={{
+      <Typography variant="h4" className="text-2xl font-bold mb-4 text-gray-800">To-Do List</Typography>
+      <Box className="flex items-center gap-2 mb-4">
+        <TextField
+          label="New Task"
+          variant="outlined"
+          value={task.text}
+          onChange={(e) => setTask({ ...task, text: e.target.value })}
+          onKeyUp={(e) => {
+            e.key === 'Enter' && addTask()
+          }}
+          className="w-80"
+          sx={{
+            "& .MuiOutlinedInput-root": {
               borderRadius: "999px",
-              height: 40,
-              backgroundColor: "#F3F4F6",
-              fontSize: 14,
-              "& .MuiSelect-select": { padding: "8px 12px" },
-            }}
-          >
-            <MenuItem value="All">All</MenuItem>
-            {task_category_option.map((option) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </Grid>
+              paddingRight: "8px",
+            },
+          }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <Select
+                  value={task.category || ""}
+                  onChange={(e) => setTask({ ...task, category: e.target.value })}
+                  displayEmpty
+                  variant="standard"
+                  sx={{ minWidth: "100px", marginRight: "8px" }}
+                  renderValue={(selected) =>
+                    selected === "" ? (
+                      <em>{task_category_option.length === 0 ? "กำลังโหลด..." : "เลือกหมวดหมู่"}</em>
+                    ) : (
+                      selected
+                    )
+                  }
+                  disabled={task_category_option.length === 0}
+                >
+                  {task_category_option.length > 0 ? (
+                    task_category_option.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      <em>ไม่มีข้อมูลหมวดหมู่</em>
+                    </MenuItem>
+                  )}
+                </Select>
+                <IconButton
+                  onClick={addTask}
+                  sx={{
+                    backgroundColor: "green",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    "&:hover": {
+                      backgroundColor: "darkgreen",
+                    },
+                  }}
+                >
+                  <Add />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button variant="outlined" onClick={() => setOpenManageCategory(!open_manage_category)}>
+          <Category />
+          <Typography sx={{ marginX: 2 }}>Manage category</Typography>
+        </Button>
+      </Box>
 
-        <Grid size={{ xs: 3, sm: 1, md: 1 }}   >
-          <IconButton
-            onClick={(event) => setAnchorEl(event.currentTarget)}
-            sx={{
-              backgroundColor: "#1E3A8A",
-              color: "white",
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              "&:hover": { backgroundColor: "#1D4ED8" },
-            }}
-          >
-            <Sort fontSize="small" />
-          </IconButton>
-        </Grid>
+      <Box className="flex items-center gap-2 mb-4">
+        <TextField
+          label="Search"
+          variant="outlined"
+          value={search_query}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              fetchTasks();
+            }
+          }}
+          className="w-full"
+          size="small"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "999px",
+              fontSize: "14px",
+            },
+          }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={fetchTasks} sx={{ color: "#4F46E5" }}>
+                  <Search />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
 
-        <Grid size={{ xs: 3, sm: 1, md: 1 }}   >
-          <IconButton
-            onClick={clearFilters}
-            sx={{
-              backgroundColor: "#EF4444",
-              color: "white",
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              "&:hover": { backgroundColor: "#DC2626" },
-            }}
-          >
-            <Clear fontSize="small" />
-          </IconButton>
-        </Grid>
+        <Select
+          value={filter_category}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          displayEmpty
+          className="w-28"
+          sx={{
+            borderRadius: "999px",
+            height: "40px",
+            fontSize: "14px",
+            backgroundColor: "#F3F4F6",
+            "& .MuiSelect-select": {
+              padding: "8px 12px",
+            },
+          }}
+        >
+          <MenuItem value="All">All</MenuItem>
+          {task_category_option.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+        </Select>
 
-        {/* Sort Menu */}
+        <IconButton
+          onClick={(event) => setAnchorEl(event.currentTarget)}
+          sx={{
+            backgroundColor: "#1E3A8A",
+            color: "white",
+            borderRadius: "50%",
+            width: "40px",
+            height: "40px",
+            "&:hover": { backgroundColor: "#1D4ED8" },
+          }}
+        >
+          <Sort fontSize="small" />
+        </IconButton>
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
@@ -434,17 +392,26 @@ const TodoListPage: React.FC = () => {
         >
           <MenuItem onClick={() => toggleSort("createdAt")}>
             Sort by Date
-            {sort_order.name === "createdAt" &&
-              (sort_order.order === "ASC" ? (
-                <ArrowUpward fontSize="small" />
-              ) : (
-                <ArrowDownward fontSize="small" />
-              ))}
+            {sort_order.name === "createdAt" && (
+              sort_order.order === "ASC" ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />
+            )}
           </MenuItem>
         </Menu>
-      </Grid>
 
-
+        <IconButton
+          onClick={clearFilters}
+          sx={{
+            backgroundColor: "#EF4444",
+            color: "white",
+            borderRadius: "50%",
+            width: "40px",
+            height: "40px",
+            "&:hover": { backgroundColor: "#DC2626" },
+          }}
+        >
+          <Clear fontSize="small" />
+        </IconButton>
+      </Box>
       {
         loading == true ? (
           <Box style={{ display: "flex", justifyContent: "center", margin: "20px 0" }}>
@@ -543,6 +510,7 @@ const TodoListPage: React.FC = () => {
           fetchCategory()
           setOpenManageCategory(false)
         }}
+        onRefresh={fetchTasks}
       />
 
     </Box >
