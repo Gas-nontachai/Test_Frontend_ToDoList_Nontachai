@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { Task } from "@/misc/types";
 import { generateID } from "@/utils/generator-id";
 import { useCategory, useTask } from "@/hook/hooks";
+import { useConfirmDialog } from "@/components/providers/confirm-dialog-provider";
 
 type SortOrder = { name: string; order: "ASC" | "DESC" };
 
@@ -18,6 +19,7 @@ const createEmptyTask = (): Task => ({
 const useTodoList = () => {
   const { getTaskBy, insertTask, updateTaskBy, deleteTaskBy } = useTask();
   const { getCategoryBy } = useCategory();
+  const confirmDialog = useConfirmDialog();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [show_completed, setShowCompleted] = useState(true);
@@ -103,14 +105,8 @@ const useTodoList = () => {
 
   const addTask = useCallback(async () => {
     if (!task.text.trim()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error!",
-        text: "Task description cannot be empty.",
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 2000,
+      toast.error("Task description cannot be empty.", {
+        description: "Add a short summary before saving.",
       });
       return;
     }
@@ -121,14 +117,8 @@ const useTodoList = () => {
     );
 
     if (isDuplicate) {
-      Swal.fire({
-        icon: "error",
-        title: "Error!",
-        text: "This task already exists!",
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 2000,
+      toast.error("This task already exists!", {
+        description: "Try tweaking the wording or group it elsewhere.",
       });
       return;
     }
@@ -142,54 +132,33 @@ const useTodoList = () => {
     await insertTask(data);
     await fetchTasks();
 
-    Swal.fire({
-      icon: "success",
-      title: "Task added successfully!",
-      toast: true,
-      position: "top-end",
-      showConfirmButton: false,
-      timer: 2000,
-    });
+    toast.success("Task added successfully!");
 
     setTask(createEmptyTask());
   }, [task, tasks, insertTask, fetchTasks]);
 
   const deleteTask = useCallback(
     async (task_id: string) => {
-      const result = await Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it!",
-        cancelButtonText: "No, cancel!",
-        reverseButtons: true,
+      const confirmed = await confirmDialog({
+        title: "Delete this task?",
+        description: "This action cannot be undone.",
+        confirmText: "Delete",
+        cancelText: "Keep it",
+        variant: "destructive",
       });
 
-      if (result.isConfirmed) {
-        await deleteTaskBy({ task_id });
-        await fetchTasks();
-        Swal.fire({
-          icon: "success",
-          title: "Task deleted successfully!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
+      if (!confirmed) {
+        toast.info("Deletion cancelled.", {
+          description: "Your task is safe and sound.",
         });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Cancelled",
-          text: "Your task is safe!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        return;
       }
+
+      await deleteTaskBy({ task_id });
+      await fetchTasks();
+      toast.success("Task deleted successfully!");
     },
-    [deleteTaskBy, fetchTasks]
+    [confirmDialog, deleteTaskBy, fetchTasks]
   );
 
   const toggleTaskCompletion = useCallback(
@@ -203,14 +172,12 @@ const useTodoList = () => {
         };
         await updateTaskBy(data);
         await fetchTasks();
-        Swal.fire({
-          icon: "success",
-          title: "Task updated successfully!",
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        toast.success(
+          completed ? "Great job! Task marked as done." : "Task re-opened.",
+          completed
+            ? undefined
+            : { description: "Back to active tasks for another pass." }
+        );
       }
     },
     [tasks, updateTaskBy, fetchTasks]

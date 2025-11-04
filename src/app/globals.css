@@ -1,13 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 30 100% 97%;
+  --foreground: 21 44% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 21 44% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 21 44% 15%;
+  --primary: 337 87% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 173 56% 78%;
+  --secondary-foreground: 174 56% 18%;
+  --muted: 45 100% 90%;
+  --muted-foreground: 24 35% 32%;
+  --accent: 214 65% 83%;
+  --accent-foreground: 220 45% 22%;
+  --destructive: 4 83% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 28 46% 80%;
+  --input: 28 46% 80%;
+  --ring: 337 87% 53%;
+  --radius: 1rem;
+  --chart-1: 337 87% 53%;
+  --chart-2: 173 53% 48%;
+  --chart-3: 214 61% 53%;
+  --chart-4: 45 100% 63%;
+  --chart-5: 289 58% 62%;
 }
 
-.swal2-container {
-  z-index: 2000 !important;
-
+:root[data-theme="dark"] {
+  --background: 334 59% 9%;
+  --foreground: 22 70% 95%;
+  --card: 338 45% 13%;
+  --card-foreground: 22 70% 95%;
+  --popover: 338 45% 13%;
+  --popover-foreground: 22 70% 95%;
+  --primary: 337 88% 70%;
+  --primary-foreground: 334 59% 9%;
+  --secondary: 180 45% 28%;
+  --secondary-foreground: 175 58% 90%;
+  --muted: 337 35% 25%;
+  --muted-foreground: 22 55% 82%;
+  --accent: 214 65% 42%;
+  --accent-foreground: 27 100% 96%;
+  --destructive: 358 75% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 337 35% 32%;
+  --input: 337 35% 32%;
+  --ring: 337 88% 70%;
+  --chart-1: 337 88% 70%;
+  --chart-2: 173 53% 64%;
+  --chart-3: 214 61% 62%;
+  --chart-4: 45 100% 66%;
+  --chart-5: 289 58% 66%;
 }
 
 @theme inline {
@@ -17,15 +62,32 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color-scheme: light;
+    background-image:
+      radial-gradient(at 4% 4%, hsla(337, 88%, 78%, 0.4) 0px, transparent 60%),
+      radial-gradient(at 92% 10%, hsla(214, 60%, 84%, 0.35) 0px, transparent 60%),
+      radial-gradient(at 12% 84%, hsla(173, 53%, 84%, 0.3) 0px, transparent 55%),
+      radial-gradient(at 88% 86%, hsla(45, 100%, 84%, 0.35) 0px, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  :root[data-theme="dark"] body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    color-scheme: dark;
+    background-image:
+      radial-gradient(at 6% 6%, hsla(337, 65%, 28%, 0.34) 0px, transparent 60%),
+      radial-gradient(at 90% 14%, hsla(214, 55%, 42%, 0.32) 0px, transparent 60%),
+      radial-gradient(at 14% 88%, hsla(173, 43%, 40%, 0.28) 0px, transparent 55%),
+      radial-gradient(at 85% 85%, hsla(45, 100%, 42%, 0.28) 0px, transparent 60%);
+  }
 }
