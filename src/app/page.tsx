@@ -1,6 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
-import Swal from 'sweetalert2';
+import React, { useState } from "react";
 import {
   CircularProgress,
   Typography,
@@ -32,235 +31,41 @@ import {
   AssignmentTurnedIn
 } from "@mui/icons-material";
 import { formatDate } from "@/utils/date-helper"
-import { generateID } from "@/utils/generator-id"
-import { Task } from "@/misc/types";
-import { useTask, useCategory } from "@/hook/hooks";
+import { useTodoList } from "@/hook/hooks";
 import UpdateTask from "@/app/components/Task/Update";
 import ManageCategory from "@/app/components/Task/ManageCategory";
 import CompletedTask from "@/app/components/Task/CompletedTask";
 
 const TodoListPage: React.FC = () => {
-  const { getTaskBy, insertTask, updateTaskBy, deleteTaskBy } = useTask();
-  const { getCategoryBy } = useCategory();
+  const {
+    loading,
+    show_completed,
+    setShowCompleted,
+    open_update,
+    setOpenUpdate,
+    open_manage_category,
+    setOpenManageCategory,
+    task,
+    setTask,
+    selected_task_id,
+    search_query,
+    setSearchQuery,
+    sort_order,
+    filter_category,
+    setFilterCategory,
+    task_category_option,
+    incomplete_tasks,
+    completed_tasks,
+    fetchTasks,
+    fetchCategory,
+    addTask,
+    deleteTask,
+    toggleTaskCompletion,
+    handleEdit,
+    toggleSort,
+    clearFilters,
+  } = useTodoList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [show_completed, setShowCompleted] = useState(true);
-  const [open_update, setOpenUpdate] = useState(false);
-  const [open_manage_category, setOpenManageCategory] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [task, setTask] = useState<Task>({
-    task_id: "",
-    text: "",
-    category: "General",
-    completed: false,
-    createdAt: new Date(),
-    completedAt: undefined,
-  });
-
-  const [selected_task_id, setSelectedTaskID] = useState("");
-
-  const [search_query, setSearchQuery] = useState<string>("");
-  const [sort_order, setSortOrder] = useState<{ name: string; order: "ASC" | "DESC" }>({
-    name: "createdAt",
-    order: "ASC",
-  });
-  const [filter_category, setFilterCategory] = useState<string>("All");
-
-  const [task_category_option, setTaskCategoryOption] = useState<string[]>([]);
-
-  const fetchTasks = useCallback(async () => {
-    const { docs: res } = await getTaskBy();
-    let filtered_tasks = res;
-
-    if (search_query.trim() !== "") {
-      filtered_tasks = filtered_tasks.filter(task =>
-        task.text.toLowerCase().includes(search_query.toLowerCase())
-      );
-    }
-
-    if (filter_category !== "All") {
-      filtered_tasks = filtered_tasks.filter(task =>
-        task.category === filter_category
-      );
-    }
-
-    filtered_tasks.sort((a, b) => {
-      let comparison = 0;
-      if (sort_order.name === "createdAt") {
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-      return sort_order.order === "DESC" ? -comparison : comparison;
-    });
-
-    setTasks(filtered_tasks);
-
-  }, [filter_category, sort_order, search_query, getTaskBy]);
-
-  const fetchCategory = useCallback(async () => {
-    try {
-      const { docs: res } = await getCategoryBy();
-      const option = res.map((item) => item.category_name);
-      setTaskCategoryOption(option);
-    } catch (error) {
-      console.error("Error fetching category:", error);
-    }
-  }, [getCategoryBy]);
-
-  useEffect(() => {
-    try {
-      fetchTasks();
-      fetchCategory();
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchTasks, fetchCategory]);
-
-  const addTask = async () => {
-    if (!task.text.trim()) {
-      Swal.fire({
-      icon: 'error',
-      title: 'Error!',
-      text: 'Task description cannot be empty.',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000,
-      });
-      return;
-    }
-
-    const isDuplicate = tasks.some(
-      existingTask => existingTask.text.toLowerCase() === task.text.toLowerCase()
-    );
-
-    if (isDuplicate) {
-      Swal.fire({
-      icon: 'error',
-      title: 'Error!',
-      text: 'This task already exists!',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000,
-      });
-      return;
-    }
-
-    const data = {
-      ...task,
-      task_id: generateID(),
-      createdAt: new Date(),
-    };
-    await insertTask(data);
-    await fetchTasks();
-    Swal.fire({
-      icon: 'success',
-      title: 'Task added successfully!',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2000,
-    });
-
-    setTask({
-      task_id: "",
-      text: "",
-      category: "General",
-      completed: false,
-      createdAt: new Date(),
-      completedAt: undefined,
-    });
-  };
-
-  const deleteTask = async (task_id: string) => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
-      reverseButtons: true,
-    });
-
-    if (result.isConfirmed) {
-      await deleteTaskBy({ task_id });
-      await fetchTasks();
-      Swal.fire({
-        icon: 'success',
-        title: 'Task deleted successfully!',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Cancelled',
-        text: 'Your task is safe!',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-      });
-    }
-  };
-
-  const toggleTaskCompletion = async (task_id: string, completed: boolean) => {
-    let data = tasks.find(task => task.task_id === task_id);
-    if (data) {
-      data = {
-        ...data,
-        completed: completed,
-        completedAt: new Date()
-      };
-      await updateTaskBy(data)
-      await fetchTasks();
-      Swal.fire({
-        icon: 'success',
-        title: 'Task updated successfully!',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-      });
-    }
-  };
-
-  const handleEdit = (task_id: string) => {
-    setSelectedTaskID(task_id);
-    setOpenUpdate(true);
-  };
-
-  const toggleSort = (value: string) => {
-    setSortOrder((prevSort) => {
-      if (prevSort.name === value) {
-        return {
-          ...prevSort,
-          order: prevSort.order === "ASC" ? "DESC" : "ASC",
-        };
-      } else {
-        return {
-          name: value,
-          order: "ASC",
-        };
-      }
-    });
-  };
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setFilterCategory("All");
-    setSortOrder({ name: "createdAt", order: "ASC" });
-    fetchTasks();
-  };
-
-  const incomplete_tasks = tasks.filter((task) => !task.completed);
-  const completed_tasks = tasks.filter((task) => task.completed);
   const maxLength = 100;
 
   return (
